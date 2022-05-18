@@ -20,7 +20,7 @@ struct DingusGroup: View {
       TextEditor(text: $markdown)
         .font(.system(.callout, design: .monospaced))
         .frame(height: 176)
-      Markdown(markdown)
+      MarkdownView(markdown)
     }
   }
 }

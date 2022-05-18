@@ -7,7 +7,7 @@ struct ThematicBreakGroup: View {
       description: "Thematic breaks can be represented by placing three or more hyphens"
         + ", asterisks, or underscores on a separate line, surrounded by blank lines."
     ) {
-      Markdown(
+      MarkdownView(
         #"""
         # SwiftUI
 

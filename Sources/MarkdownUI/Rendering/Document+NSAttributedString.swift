@@ -1,5 +1,5 @@
 import Combine
-import CommonMark
+import Markdown
 import SwiftUI
 
 extension Document {

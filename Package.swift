@@ -16,11 +16,7 @@ let package = Package(
     )
   ],
   dependencies: [
-    .package(
-      name: "SwiftCommonMark",
-      url: "https://github.com/gonzalezreal/SwiftCommonMark",
-      from: "1.0.0"
-    ),
+    .package(url: "https://github.com/apple/swift-markdown.git", .branch("main")), 
     .package(
       name: "AttributedText",
       url: "https://github.com/gonzalezreal/AttributedText",
@@ -42,7 +38,7 @@ let package = Package(
     .target(
       name: "MarkdownUI",
       dependencies: [
-        .product(name: "CommonMark", package: "SwiftCommonMark"),
+        .product(name: "Markdown", package: "swift-markdown"),
         "AttributedText",
         "NetworkImage",
         .product(name: "CombineSchedulers", package: "combine-schedulers"),

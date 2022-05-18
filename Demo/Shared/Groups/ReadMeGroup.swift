@@ -7,7 +7,7 @@ struct ReadMeGroup: View {
       return nil
     }
 
-    return try? Document(contentsOf: url)
+    return try? Document(parsing: url)
   }
 
   private let baseURL = URL(string: "https://github.com/gonzalezreal/MarkdownUI/raw/main/")
@@ -17,7 +17,7 @@ struct ReadMeGroup: View {
       description: "This example shows a Markdown view rendering the repository's README file."
     ) {
       if let document = self.document {
-        Markdown(document, baseURL: self.baseURL)
+        MarkdownView(document, baseURL: self.baseURL)
       }
     }
   }

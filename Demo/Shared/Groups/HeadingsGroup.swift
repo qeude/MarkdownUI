@@ -4,7 +4,7 @@ import SwiftUI
 struct HeadingsGroup: View {
   var body: some View {
     DemoSection(description: "Starting a line with a hash # and a space makes a header.") {
-      Markdown(
+      MarkdownView(
         #"""
         # Heading 1
         A paragraph of text.

@@ -6,7 +6,7 @@ struct BulletListGroup: View {
     DemoSection(
       description: "Unordered lists can use either asterisks, plus, or hyphens as list markers."
     ) {
-      Markdown(
+      MarkdownView(
         #"""
         List of humorous units of measurement:
 

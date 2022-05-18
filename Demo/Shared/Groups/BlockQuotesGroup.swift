@@ -10,7 +10,7 @@ struct BlockQuotesGroup: View {
         Blockquotes can be nested, and can also contain other formatting.
         """
     ) {
-      Markdown(
+      MarkdownView(
         #"""
         #### Groucho Marx quotes
 

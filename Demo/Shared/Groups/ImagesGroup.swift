@@ -7,7 +7,7 @@ struct ImagesGroup: View {
       title: "Absolute image URL",
       description: "This image is loaded from an absolute URL."
     ) {
-      Markdown(
+      MarkdownView(
         #"""
         ![](https://picsum.photos/id/223/100/150)
 
@@ -19,7 +19,7 @@ struct ImagesGroup: View {
       title: "Relative image URL",
       description: "This image is loaded from a relative URL."
     ) {
-      Markdown(
+      MarkdownView(
         #"""
         ![](id/240/100/150)
 
@@ -32,7 +32,7 @@ struct ImagesGroup: View {
       title: "Asset Catalog",
       description: "This image is loaded from the asset catalog."
     ) {
-      Markdown(
+      MarkdownView(
         #"""
         ![](asset:///Puppy)
 

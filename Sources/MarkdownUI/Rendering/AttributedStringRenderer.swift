@@ -1,4 +1,4 @@
-import CommonMark
+import Markdown
 import SwiftUI
 
 struct AttributedStringRenderer {
@@ -39,8 +39,9 @@ struct AttributedStringRenderer {
   let environment: Environment
 
   func renderDocument(_ document: Document) -> NSAttributedString {
+    let blocks: [BlockMarkup] = document.children.compactMap({$0 as? BlockMarkup})
     return renderBlocks(
-      document.blocks,
+      blocks,
       state: .init(
         font: environment.style.font,
         foregroundColor: environment.style.foregroundColor,
@@ -51,7 +52,7 @@ struct AttributedStringRenderer {
 }
 
 extension AttributedStringRenderer {
-  private func renderBlocks(_ blocks: [Block], state: State) -> NSMutableAttributedString {
+  private func renderBlocks(_ blocks: [BlockMarkup], state: State) -> NSMutableAttributedString {
     let result = NSMutableAttributedString()
 
     for (offset, block) in blocks.enumerated() {
@@ -64,27 +65,29 @@ extension AttributedStringRenderer {
   }
 
   private func renderBlock(
-    _ block: Block,
+    _ block: BlockMarkup,
     hasSuccessor: Bool,
     state: State
   ) -> NSAttributedString {
     switch block {
-    case .blockQuote(let blockQuote):
+    case let blockQuote as BlockQuote:
       return renderBlockQuote(blockQuote, hasSuccessor: hasSuccessor, state: state)
-    case .bulletList(let bulletList):
+    case let bulletList as UnorderedList:
       return renderBulletList(bulletList, hasSuccessor: hasSuccessor, state: state)
-    case .orderedList(let orderedList):
+    case let orderedList as OrderedList:
       return renderOrderedList(orderedList, hasSuccessor: hasSuccessor, state: state)
-    case .code(let codeBlock):
+    case let codeBlock as CodeBlock:
       return renderCodeBlock(codeBlock, hasSuccessor: hasSuccessor, state: state)
-    case .html(let htmlBlock):
+    case let htmlBlock as HTMLBlock:
       return renderHTMLBlock(htmlBlock, hasSuccessor: hasSuccessor, state: state)
-    case .paragraph(let paragraph):
+    case let paragraph as Paragraph:
       return renderParagraph(paragraph, hasSuccessor: hasSuccessor, state: state)
-    case .heading(let heading):
+    case let heading as Heading:
       return renderHeading(heading, hasSuccessor: hasSuccessor, state: state)
-    case .thematicBreak:
+    case _ as ThematicBreak:
       return renderThematicBreak(hasSuccessor: hasSuccessor, state: state)
+    default:
+      fatalError()
     }
   }
 
@@ -104,9 +107,9 @@ extension AttributedStringRenderer {
     )
     state.addFirstLineIndent()
 
-    for (offset, item) in blockQuote.items.enumerated() {
+    for (offset, item) in blockQuote.children.compactMap({$0 as? BlockMarkup}).enumerated() {
       result.append(
-        renderBlock(item, hasSuccessor: offset < blockQuote.items.count - 1, state: state)
+        renderBlock(item, hasSuccessor: offset < blockQuote.childCount - 1, state: state)
       )
     }
 
@@ -118,15 +121,14 @@ extension AttributedStringRenderer {
   }
 
   private func renderBulletList(
-    _ bulletList: BulletList,
+    _ bulletList: Markdown.UnorderedList,
     hasSuccessor: Bool,
     state: State
   ) -> NSAttributedString {
     let result = NSMutableAttributedString()
 
     var itemState = state
-    itemState.paragraphSpacing =
-      bulletList.tight ? 0 : environment.style.measurements.paragraphSpacing
+    itemState.paragraphSpacing = environment.style.measurements.paragraphSpacing
     itemState.headIndent += environment.style.measurements.headIndentStep
     itemState.tabStops.append(
       contentsOf: [
@@ -139,13 +141,13 @@ extension AttributedStringRenderer {
     )
     itemState.setListMarker(nil)
 
-    for (offset, item) in bulletList.items.enumerated() {
+    for (offset, item) in bulletList.children.compactMap({$0 as? ListItem}).enumerated() {
       result.append(
         renderListItem(
           item,
           listMarker: .disc,
           parentParagraphSpacing: state.paragraphSpacing,
-          hasSuccessor: offset < bulletList.items.count - 1,
+          hasSuccessor: offset < bulletList.childCount - 1,
           state: itemState
         )
       )
@@ -167,7 +169,7 @@ extension AttributedStringRenderer {
 
     // Measure the width of the highest list number in em units and use it
     // as the head indent step if higher than the style's head indent step.
-    let highestNumber = orderedList.start + orderedList.items.count - 1
+    let highestNumber = orderedList.childCount - 1
     let headIndentStep = max(
       environment.style.measurements.headIndentStep,
       NSAttributedString(
@@ -179,8 +181,7 @@ extension AttributedStringRenderer {
     )
 
     var itemState = state
-    itemState.paragraphSpacing =
-      orderedList.tight ? 0 : environment.style.measurements.paragraphSpacing
+    itemState.paragraphSpacing =  environment.style.measurements.paragraphSpacing
     itemState.headIndent += headIndentStep
     itemState.tabStops.append(
       contentsOf: [
@@ -193,13 +194,13 @@ extension AttributedStringRenderer {
     )
     itemState.setListMarker(nil)
 
-    for (offset, item) in orderedList.items.enumerated() {
+    for (offset, item) in orderedList.children.compactMap({$0 as? ListItem}).enumerated() {
       result.append(
         renderListItem(
           item,
-          listMarker: .decimal(offset + orderedList.start),
+          listMarker: .decimal(offset + orderedList.indexInParent),
           parentParagraphSpacing: state.paragraphSpacing,
-          hasSuccessor: offset < orderedList.items.count - 1,
+          hasSuccessor: offset < orderedList.childCount - 1,
           state: itemState
         )
       )
@@ -221,7 +222,7 @@ extension AttributedStringRenderer {
   ) -> NSAttributedString {
     let result = NSMutableAttributedString()
 
-    for (offset, block) in listItem.blocks.enumerated() {
+    for (offset, block) in listItem.children.compactMap({$0 as? BlockMarkup}).enumerated() {
       var blockState = state
 
       if offset == 0 {
@@ -231,7 +232,7 @@ extension AttributedStringRenderer {
         blockState.addFirstLineIndent(2)
       }
 
-      if !hasSuccessor, offset == listItem.blocks.count - 1 {
+      if !hasSuccessor, offset == listItem.children.compactMap({$0 as? BlockMarkup}).count - 1 {
         // Use the appropriate paragraph spacing after the list
         blockState.paragraphSpacing = max(parentParagraphSpacing, state.paragraphSpacing)
       }
@@ -239,7 +240,7 @@ extension AttributedStringRenderer {
       result.append(
         renderBlock(
           block,
-          hasSuccessor: offset < listItem.blocks.count - 1,
+          hasSuccessor: offset < listItem.children.compactMap({$0 as? BlockMarkup}).count - 1,
           state: blockState
         )
       )
@@ -268,8 +269,7 @@ extension AttributedStringRenderer {
     var code = codeBlock.code.replacingOccurrences(of: "\n", with: String.lineSeparator)
     // Remove the last line separator
     code.removeLast()
-
-    return renderParagraph(.init(text: [.text(code)]), hasSuccessor: hasSuccessor, state: state)
+    return renderParagraph(Paragraph([Text(code)]), hasSuccessor: hasSuccessor, state: state)
   }
 
   private func renderHTMLBlock(
@@ -277,12 +277,12 @@ extension AttributedStringRenderer {
     hasSuccessor: Bool,
     state: State
   ) -> NSAttributedString {
-    var html = htmlBlock.html.replacingOccurrences(of: "\n", with: String.lineSeparator)
+    var html = htmlBlock.rawHTML.replacingOccurrences(of: "\n", with: String.lineSeparator)
     // Remove the last line separator
     html.removeLast()
 
     // Render HTML blocks as plain text paragraphs
-    return renderParagraph(.init(text: [.text(html)]), hasSuccessor: hasSuccessor, state: state)
+    return renderParagraph(Paragraph([Text(html)]), hasSuccessor: hasSuccessor, state: state)
   }
 
   private func renderParagraph(
@@ -291,7 +291,7 @@ extension AttributedStringRenderer {
     state: State
   ) -> NSAttributedString {
     let result = renderParagraphEdits(state: state)
-    result.append(renderInlines(paragraph.text, state: state))
+    result.append(renderInlines(paragraph.children.compactMap({$0 as? InlineMarkup}), state: state))
 
     result.addAttribute(
       .paragraphStyle, value: paragraphStyle(state: state), range: NSRange(0..<result.length)
@@ -316,7 +316,7 @@ extension AttributedStringRenderer {
       environment.style.measurements.headingScales[heading.level - 1]
     )
 
-    result.append(renderInlines(heading.text, state: inlineState))
+    result.append(renderInlines(heading.children.compactMap({$0 as? InlineMarkup}), state: inlineState))
 
     // The paragraph spacing is relative to the parent font
     var paragraphState = state
@@ -388,7 +388,7 @@ extension AttributedStringRenderer {
     return result
   }
 
-  private func renderInlines(_ inlines: [Inline], state: State) -> NSMutableAttributedString {
+  private func renderInlines(_ inlines: [InlineMarkup], state: State) -> NSMutableAttributedString {
     let result = NSMutableAttributedString()
 
     for inline in inlines {
@@ -398,26 +398,28 @@ extension AttributedStringRenderer {
     return result
   }
 
-  private func renderInline(_ inline: Inline, state: State) -> NSAttributedString {
+  private func renderInline(_ inline: InlineMarkup, state: State) -> NSAttributedString {
     switch inline {
-    case .text(let text):
-      return renderText(text, state: state)
-    case .softBreak:
+    case let inline as Markdown.Text:
+      return renderText(inline.plainText, state: state)
+    case _ as SoftBreak:
       return renderSoftBreak(state: state)
-    case .lineBreak:
+    case _ as LineBreak:
       return renderLineBreak(state: state)
-    case .code(let inlineCode):
-      return renderInlineCode(inlineCode, state: state)
-    case .html(let inlineHTML):
-      return renderInlineHTML(inlineHTML, state: state)
-    case .emphasis(let emphasis):
-      return renderEmphasis(emphasis, state: state)
-    case .strong(let strong):
-      return renderStrong(strong, state: state)
-    case .link(let link):
-      return renderLink(link, state: state)
-    case .image(let image):
-      return renderImage(image, state: state)
+    case let inline as InlineCode:
+      return renderInlineCode(inline, state: state)
+    case let inline as InlineHTML:
+      return renderInlineHTML(inline, state: state)
+    case let inline as Emphasis:
+      return renderEmphasis(inline, state: state)
+    case let inline as Strong:
+      return renderStrong(inline, state: state)
+    case let inline as Markdown.Link:
+      return renderLink(inline, state: state)
+    case let inline as Markdown.Image:
+      return renderImage(inline, state: state)
+    default:
+      fatalError()
     }
   }
 
@@ -446,26 +448,25 @@ extension AttributedStringRenderer {
   }
 
   private func renderInlineHTML(_ inlineHTML: InlineHTML, state: State) -> NSAttributedString {
-    renderText(inlineHTML.html, state: state)
+    renderText(inlineHTML.rawHTML, state: state)
   }
 
   private func renderEmphasis(_ emphasis: Emphasis, state: State) -> NSAttributedString {
     var state = state
     state.font = state.font.italic()
-    return renderInlines(emphasis.children, state: state)
+    return renderInlines(emphasis.children.compactMap({$0 as? InlineMarkup}), state: state)
   }
 
   private func renderStrong(_ strong: Strong, state: State) -> NSAttributedString {
     var state = state
     state.font = state.font.bold()
-    return renderInlines(strong.children, state: state)
+    return renderInlines(strong.children.compactMap({$0 as? InlineMarkup}), state: state)
   }
 
-  private func renderLink(_ link: CommonMark.Link, state: State) -> NSAttributedString {
-    let result = renderInlines(link.children, state: state)
+  private func renderLink(_ link: Markdown.Link, state: State) -> NSAttributedString {
+    let result = renderInlines(link.children.compactMap({$0 as? InlineMarkup}), state: state)
     let absoluteURL =
-      link.url
-      .map(\.relativeString)
+    link.destination
       .flatMap { URL(string: $0, relativeTo: environment.baseURL) }
       .map(\.absoluteURL)
     if let url = absoluteURL {
@@ -480,9 +481,8 @@ extension AttributedStringRenderer {
     return result
   }
 
-  private func renderImage(_ image: CommonMark.Image, state: State) -> NSAttributedString {
-    image.url
-      .map(\.relativeString)
+  private func renderImage(_ image: Markdown.Image, state: State) -> NSAttributedString {
+    image.source
       .flatMap { URL(string: $0, relativeTo: environment.baseURL) }
       .map(\.absoluteURL)
       .map {

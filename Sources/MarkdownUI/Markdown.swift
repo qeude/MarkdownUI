@@ -1,7 +1,7 @@
 import AttributedText
 import Combine
 import CombineSchedulers
-@_exported import CommonMark
+@_exported import Markdown
 import SwiftUI
 
 /// A view that displays Markdown-formatted text.
@@ -102,15 +102,22 @@ import SwiftUI
 /// )
 /// ```
 ///
-public struct Markdown: View {
+public struct MarkdownView: View {
   private enum Storage: Hashable {
+    static func == (lhs: MarkdownView.Storage, rhs: MarkdownView.Storage) -> Bool {
+      return lhs.document.isIdentical(to: rhs.document)
+    }
+    func hash(into hasher: inout Hasher) {
+      hasher.combine(document.debugDescription().hashValue)
+    }
+    
     case markdown(String)
     case document(Document)
 
     var document: Document {
       switch self {
       case .markdown(let string):
-        return (try? Document(markdown: string)) ?? Document(blocks: [])
+        return Document(parsing: string)
       case .document(let document):
         return document
       }
@@ -190,8 +197,8 @@ public struct Markdown: View {
   ///              as being relative to this URL. If this value is nil, the initializer doesn’t resolve URLs.
   ///              The default is `nil`.
   ///   - content: A block array builder that creates the content of this Markdown view.
-  public init(baseURL: URL? = nil, @BlockArrayBuilder content: () -> [Block]) {
-    self.init(Document(blocks: content), baseURL: baseURL)
+  public init(baseURL: URL? = nil, content: [BlockMarkup]) {
+    self.init(Document(content), baseURL: baseURL)
   }
 
   private var viewStatePublisher: AnyPublisher<ViewState, Never> {
@@ -261,7 +268,7 @@ public struct Markdown: View {
   }
 }
 
-extension Markdown {
+extension MarkdownView {
   /// Sets an image handler associated with the specified URL scheme within this view.
   ///
   /// A ``MarkdownImageHandler`` is a type encapsulating image loading behavior
@@ -291,7 +298,7 @@ extension Markdown {
   public func setImageHandler(
     _ imageHandler: MarkdownImageHandler,
     forURLScheme urlScheme: String
-  ) -> Markdown {
+  ) -> MarkdownView {
     var result = self
     result.imageHandlers[urlScheme] = imageHandler
 

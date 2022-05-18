@@ -7,7 +7,7 @@ struct CodeBlockGroup: View {
       description: "To create a code block, either indent each line by 4 spaces, or place 3"
         + " backticks ``` on a line above and below the code block."
     ) {
-      Markdown(
+      MarkdownView(
         #"""
         Use a group to collect multiple views into a single instance,
         without affecting the layout of those views. After creating a

@@ -10,7 +10,7 @@ struct LinksGroup: View {
       title: "Absolute Link",
       description: "This example shows a link using a full URL."
     ) {
-      Markdown(
+      MarkdownView(
         #"""
         **MarkdownUI** is a library for rendering Markdown in *SwiftUI*, fully compliant with the
         [CommonMark Spec](https://spec.commonmark.org/current/).
@@ -21,7 +21,7 @@ struct LinksGroup: View {
       title: "Relative Link",
       description: "You can use relative links if you specify a base URL."
     ) {
-      Markdown(
+      MarkdownView(
         #"""
         You can explore all the capabilities of this package in the
         [companion demo project](Demo).
@@ -36,7 +36,7 @@ struct LinksGroup: View {
     ) {
       Group {
         if #available(iOS 15.0, macOS 12.0, *) {
-          Markdown(
+          MarkdownView(
             #"""
             **MarkdownUI** is a library for rendering Markdown in *SwiftUI*, fully compliant with the
             [CommonMark Spec](https://spec.commonmark.org/current/).
@@ -50,7 +50,7 @@ struct LinksGroup: View {
               return .handled
             })
         } else {
-          Markdown(
+          MarkdownView(
             #"""
             **MarkdownUI** is a library for rendering Markdown in *SwiftUI*, fully compliant with the
             [CommonMark Spec](https://spec.commonmark.org/current/).

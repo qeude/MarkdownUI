@@ -4,7 +4,7 @@ import SwiftUI
 struct OrderedListGroup: View {
   var body: some View {
     DemoSection(description: "Ordered lists use numbers followed by period or right parenthesis.") {
-      Markdown(
+      MarkdownView(
         #"""
         This is an incomplete list of headgear:
 
